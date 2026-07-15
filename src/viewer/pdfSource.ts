@@ -71,6 +71,20 @@ export class PdfSource implements ContentSource {
     }
   }
 
+  /** Concatenate the text of every page (for the scrolling reader). */
+  async getAllText(): Promise<string> {
+    const parts: string[] = [];
+    for (let n = 1; n <= this.pageCount; n++) {
+      const page = await this.doc.getPage(n);
+      const content = await page.getTextContent();
+      const line = content.items
+        .map((it) => ("str" in it ? it.str : ""))
+        .join(" ");
+      if (line.trim()) parts.push(line);
+    }
+    return parts.join("   ");
+  }
+
   get width(): number {
     return this.canvas.width;
   }

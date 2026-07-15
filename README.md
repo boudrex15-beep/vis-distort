@@ -1,12 +1,31 @@
 # Vis-Distort
 
-A viewer for people with **metamorphopsia** — distorted (wavy) vision, most often caused
-by macular degeneration (AMD). Because the distortion in dry AMD is usually **stable**,
-it can be measured once and counteracted: Vis-Distort shows images, PDFs, and videos
-**pre-warped with the opposite of your distortion**, so they can look straighter to you.
+A viewer for people with **age-related macular degeneration (AMD)**. Because the
+distortion in dry AMD is usually **stable**, it can be measured once and counteracted:
+Vis-Distort shows images, PDFs, and videos **pre-warped with the opposite of your
+distortion**, so straight lines can look straight to you again.
 
 Everything runs locally in your browser. Your files and your calibration never leave
 your computer.
+
+## Two versions (same calibration)
+
+There are two pages, and both share the same saved calibration profiles:
+
+- **`index.html` — the classic distortion tool.** Just calibration + the distortion-correcting
+  viewer. Simple and focused.
+- **`aids.html` — the low-vision viewer.** Everything the classic version does, **plus**
+  evidence-based aids for the *other* symptoms that usually come with AMD:
+  - **Magnification** — the single biggest help for fuzziness/blur.
+  - **Brightness, contrast, and high-contrast colour modes** (white-on-black, black-on-white,
+    yellow-on-blue, etc.) — help blur and darker spots.
+  - **Scrolling-text reading mode** — a large horizontal ticker (paste text, or pull it from an
+    open PDF), which research shows is easier to read with central vision loss and supports
+    eccentric viewing. It scrolls *through* your distortion correction and colour settings.
+
+  **Honest limits:** magnification and contrast improve *perceived* clarity, but no software can
+  restore detail the retina no longer senses, or refill a true blind spot. This is an assistive
+  aid, not a treatment — sudden vision change means see your eye doctor promptly.
 
 ## How to use it
 

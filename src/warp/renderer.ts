@@ -1,6 +1,23 @@
 import { VERTEX_SRC, FRAGMENT_SRC } from "./shaders";
 import { FIELD_TEX_SIZE } from "./field";
 
+export interface EnhanceParams {
+  brightness: number; // -1..1, added per channel
+  contrast: number; // multiplier about mid-grey
+  /** 0 = full colour, 1 = duotone by luminance. */
+  colorMode: 0 | 1;
+  fg: [number, number, number];
+  bg: [number, number, number];
+}
+
+export const NEUTRAL_ENHANCE: EnhanceParams = {
+  brightness: 0,
+  contrast: 1,
+  colorMode: 0,
+  fg: [1, 1, 1],
+  bg: [0, 0, 0],
+};
+
 export interface RenderParams {
   /** Warp strength multiplier (0 disables, 1 = as calibrated). */
   strength: number;
@@ -11,6 +28,8 @@ export interface RenderParams {
   /** Where the content is drawn, CSS px relative to the canvas. */
   contentRect: { x: number; y: number; w: number; h: number };
   background: [number, number, number, number];
+  /** Low-vision enhancements; omit for neutral (no change). */
+  enhance?: EnhanceParams;
 }
 
 function compile(gl: WebGL2RenderingContext, type: number, src: string): WebGLShader {
@@ -65,6 +84,11 @@ export class WarpRenderer {
       "uFieldTexSize",
       "uFieldTex",
       "uContentTex",
+      "uBrightness",
+      "uContrast",
+      "uColorMode",
+      "uFg",
+      "uBg",
     ]) {
       this.uniforms[name] = gl.getUniformLocation(program, name);
     }
@@ -158,6 +182,13 @@ export class WarpRenderer {
       Math.max(1e-6, params.contentRect.h * dpr)
     );
     gl.uniform4f(this.u("uBackground"), br, bg, bb, ba);
+
+    const e = params.enhance ?? NEUTRAL_ENHANCE;
+    gl.uniform1f(this.u("uBrightness"), e.brightness);
+    gl.uniform1f(this.u("uContrast"), e.contrast);
+    gl.uniform1i(this.u("uColorMode"), e.colorMode);
+    gl.uniform3f(this.u("uFg"), e.fg[0], e.fg[1], e.fg[2]);
+    gl.uniform3f(this.u("uBg"), e.bg[0], e.bg[1], e.bg[2]);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }

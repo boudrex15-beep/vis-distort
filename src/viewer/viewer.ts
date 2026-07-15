@@ -1,8 +1,10 @@
-import type { WarpRenderer } from "../warp/renderer";
+import type { WarpRenderer, EnhanceParams } from "../warp/renderer";
 import type { ContentSource } from "./sources";
 import { ImageSource } from "./imageSource";
 import { VideoSource } from "./videoSource";
 import { PdfSource } from "./pdfSource";
+import { TextSource } from "./textSource";
+import { colorModeById, paletteCss } from "./colorModes";
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds)) return "0:00";
@@ -11,10 +13,17 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+const MAX_ZOOM = 8;
+
 export class ViewerMode {
   correctionOn = true;
   strength = 1;
   fieldSizeFactor = 1;
+
+  // Low-vision enhancements (see colorModes.ts for the palettes).
+  brightness = 0;
+  contrast = 1;
+  colorModeId = "normal";
 
   private stage: HTMLElement;
   private renderer: WarpRenderer;
@@ -118,6 +127,16 @@ export class ViewerMode {
     }
   }
 
+  get magnification(): number {
+    return this.zoom;
+  }
+
+  /** Set absolute magnification (1 = fit), keeping the view centered. */
+  setZoom(z: number): void {
+    this.zoom = Math.min(MAX_ZOOM, Math.max(1, z));
+    this.requestRender();
+  }
+
   zoomBy(factor: number, anchor?: { x: number; y: number }): void {
     if (!this.source) return;
     const before = this.contentRect();
@@ -132,7 +151,68 @@ export class ViewerMode {
     } else {
       this.zoom = newZoom;
     }
+    this.onZoomChange?.();
     this.requestRender();
+  }
+
+  /** Notifies the UI so the magnification readout can follow wheel/keyboard zoom. */
+  onZoomChange: (() => void) | null = null;
+
+  enhanceParams(): EnhanceParams {
+    const mode = colorModeById(this.colorModeId);
+    // The text ticker is already drawn in the chosen palette, so don't also
+    // apply the shader duotone (it would remap twice).
+    const duotone = mode.fg && mode.bg && !(this.source instanceof TextSource);
+    return {
+      brightness: this.brightness,
+      contrast: this.contrast,
+      colorMode: duotone ? 1 : 0,
+      fg: mode.fg ?? [1, 1, 1],
+      bg: mode.bg ?? [0, 0, 0],
+    };
+  }
+
+  /** Apply the current colour-mode palette to the text ticker, if active. */
+  setColorMode(id: string): void {
+    this.colorModeId = id;
+    if (this.source instanceof TextSource) {
+      const p = paletteCss(colorModeById(id));
+      this.source.setPalette(p.fg, p.bg);
+    }
+    this.requestRender();
+  }
+
+  get textReader(): TextSource | null {
+    return this.source instanceof TextSource ? this.source : null;
+  }
+
+  /** Start (or replace) the scrolling-text reader with the given text. */
+  startTextReader(text: string): void {
+    if (!text.trim()) {
+      this.notify("Type or paste some text first.");
+      return;
+    }
+    const p = paletteCss(colorModeById(this.colorModeId));
+    if (this.source instanceof TextSource) {
+      this.source.setText(text);
+      this.source.setPalette(p.fg, p.bg);
+    } else {
+      this.source?.destroy();
+      const ts = new TextSource(this.stage, text);
+      ts.setPalette(p.fg, p.bg);
+      this.source = ts;
+      this.uploadedVersion = -1;
+      this.zoom = 1;
+      this.pan = { x: 0, y: 0 };
+    }
+    this.updateChrome();
+    this.requestRender();
+  }
+
+  /** Extract text from the currently open PDF, if any. */
+  async pdfText(): Promise<string | null> {
+    if (this.source instanceof PdfSource) return this.source.getAllText();
+    return null;
   }
 
   zoomReset(): void {
@@ -195,6 +275,7 @@ export class ViewerMode {
       });
       return;
     }
+    if (this.source instanceof TextSource) this.source.update();
     if (this.source.version !== this.uploadedVersion) {
       this.renderer.setContent(this.source.texSource);
       this.uploadedVersion = this.source.version;
@@ -206,6 +287,7 @@ export class ViewerMode {
       fieldCenter: geometry.fieldCenter,
       contentRect: this.contentRect(),
       background,
+      enhance: this.enhanceParams(),
     });
   }
 
@@ -224,6 +306,9 @@ export class ViewerMode {
     };
   }
 
+  /** Optional hook so a host page can update chrome it owns (e.g. text bar). */
+  onSourceChange: (() => void) | null = null;
+
   private updateChrome(): void {
     if (!this.active) return;
     this.dropHint.hidden = this.source !== null;
@@ -231,6 +316,7 @@ export class ViewerMode {
     this.videoBar.hidden = !(this.source instanceof VideoSource);
     if (this.source instanceof PdfSource) this.updatePdfBar();
     if (this.source instanceof VideoSource) this.updateVideoBar();
+    this.onSourceChange?.();
   }
 
   private updatePdfBar(): void {

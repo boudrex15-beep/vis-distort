@@ -20,6 +20,13 @@ uniform float uFieldTexSize;
 uniform sampler2D uFieldTex;   // RG32F displacement in field units, NEAREST
 uniform sampler2D uContentTex;
 
+// Low-vision enhancements, applied to the fetched content color.
+uniform float uBrightness;  // added to each channel, -1..1
+uniform float uContrast;    // multiplier about mid-grey, ~0.5..3
+uniform int   uColorMode;   // 0 = full colour, 1 = duotone (fg/bg by luminance)
+uniform vec3  uFg;          // duotone foreground (maps to bright luminance)
+uniform vec3  uBg;          // duotone background (maps to dark luminance)
+
 out vec4 outColor;
 
 // Manual bilinear over the NEAREST float texture; avoids relying on the
@@ -53,7 +60,19 @@ void main() {
   vec2 src = p + disp * uFieldSide * uStrength;
   vec2 cuv = (src - uContentOffset) / uContentSize;
   if (all(greaterThanEqual(cuv, vec2(0.0))) && all(lessThanEqual(cuv, vec2(1.0)))) {
-    outColor = texture(uContentTex, cuv);
+    vec3 rgb = texture(uContentTex, cuv).rgb;
+
+    // Contrast about mid-grey, then brightness.
+    rgb = (rgb - 0.5) * uContrast + 0.5 + uBrightness;
+
+    // Optional duotone: map luminance onto a foreground/background ramp
+    // (high-contrast reading palettes such as white-on-black).
+    if (uColorMode == 1) {
+      float lum = clamp(dot(rgb, vec3(0.299, 0.587, 0.114)), 0.0, 1.0);
+      rgb = mix(uBg, uFg, lum);
+    }
+
+    outColor = vec4(clamp(rgb, 0.0, 1.0), 1.0);
   } else {
     outColor = uBackground;
   }

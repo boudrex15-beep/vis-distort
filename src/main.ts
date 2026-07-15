@@ -382,6 +382,147 @@ window.addEventListener("keydown", (e) => {
 const helpDialog = $<HTMLDialogElement>("help-dialog");
 $("help-btn").addEventListener("click", () => helpDialog.showModal());
 
+// ---------- low-vision aids (only present on the "aids" page) ----------
+// Every control below is looked up defensively; on the original distortion
+// page these elements do not exist, so this whole section is inert there.
+
+const opt = <T extends HTMLElement>(id: string): T | null =>
+  document.getElementById(id) as T | null;
+
+const colorModeSelect = opt<HTMLSelectElement>("color-mode");
+if (colorModeSelect) {
+  const ENHANCE_KEY = "visdistort.enhance.v1";
+
+  const magSlider = opt<HTMLInputElement>("mag-slider")!;
+  const magValue = opt("mag-value")!;
+  const brightnessSlider = opt<HTMLInputElement>("brightness-slider")!;
+  const brightnessValue = opt("brightness-value")!;
+  const contrastSlider = opt<HTMLInputElement>("contrast-slider")!;
+  const contrastValue = opt("contrast-value")!;
+
+  const saveEnhance = (): void => {
+    try {
+      localStorage.setItem(
+        ENHANCE_KEY,
+        JSON.stringify({
+          brightness: viewer.brightness,
+          contrast: viewer.contrast,
+          colorModeId: viewer.colorModeId,
+        })
+      );
+    } catch {
+      /* storage unavailable — fine */
+    }
+  };
+
+  const syncMag = (): void => {
+    magSlider.value = viewer.magnification.toFixed(2);
+    magValue.textContent = `${viewer.magnification.toFixed(1)}×`;
+  };
+  viewer.onZoomChange = syncMag;
+
+  magSlider.addEventListener("input", () => {
+    viewer.setZoom(magSlider.valueAsNumber);
+    magValue.textContent = `${viewer.magnification.toFixed(1)}×`;
+  });
+
+  brightnessSlider.addEventListener("input", () => {
+    viewer.brightness = brightnessSlider.valueAsNumber / 100;
+    brightnessValue.textContent = `${brightnessSlider.value}%`;
+    saveEnhance();
+    requestRender();
+  });
+
+  contrastSlider.addEventListener("input", () => {
+    viewer.contrast = contrastSlider.valueAsNumber / 100;
+    contrastValue.textContent = `${(viewer.contrast).toFixed(2)}×`;
+    saveEnhance();
+    requestRender();
+  });
+
+  colorModeSelect.addEventListener("change", () => {
+    viewer.setColorMode(colorModeSelect.value);
+    saveEnhance();
+  });
+
+  // Reading (scrolling text).
+  const readText = opt<HTMLTextAreaElement>("read-text")!;
+  const textBar = opt("text-bar")!;
+  const textPlay = opt<HTMLButtonElement>("text-play")!;
+  const textSpeed = opt<HTMLInputElement>("text-speed")!;
+  const textFont = opt<HTMLInputElement>("text-font")!;
+
+  const updateTextBar = (): void => {
+    const reader = viewer.textReader;
+    textBar.hidden = !reader;
+    if (reader) textPlay.textContent = reader.playing ? "⏸" : "▶";
+  };
+  viewer.onSourceChange = updateTextBar;
+
+  opt("read-start")!.addEventListener("click", () => {
+    viewer.startTextReader(readText.value);
+    const reader = viewer.textReader;
+    if (reader) {
+      reader.speed = textSpeed.valueAsNumber;
+      reader.fontSize = textFont.valueAsNumber;
+    }
+    requestRender();
+  });
+
+  opt("read-from-pdf")!.addEventListener("click", async () => {
+    const text = await viewer.pdfText();
+    if (!text) {
+      notify("Open a PDF first, then pull its text.");
+      return;
+    }
+    readText.value = text;
+    viewer.startTextReader(text);
+    requestRender();
+  });
+
+  textPlay.addEventListener("click", () => {
+    viewer.textReader?.togglePlay();
+    updateTextBar();
+    requestRender();
+  });
+  textSpeed.addEventListener("input", () => {
+    if (viewer.textReader) viewer.textReader.speed = textSpeed.valueAsNumber;
+  });
+  textFont.addEventListener("input", () => {
+    if (viewer.textReader) viewer.textReader.fontSize = textFont.valueAsNumber;
+    requestRender();
+  });
+
+  // Restore saved enhancement settings.
+  try {
+    const raw = localStorage.getItem(ENHANCE_KEY);
+    if (raw) {
+      const s = JSON.parse(raw) as {
+        brightness?: number;
+        contrast?: number;
+        colorModeId?: string;
+      };
+      if (typeof s.brightness === "number") {
+        viewer.brightness = s.brightness;
+        brightnessSlider.value = String(Math.round(s.brightness * 100));
+        brightnessValue.textContent = `${brightnessSlider.value}%`;
+      }
+      if (typeof s.contrast === "number") {
+        viewer.contrast = s.contrast;
+        contrastSlider.value = String(Math.round(s.contrast * 100));
+        contrastValue.textContent = `${s.contrast.toFixed(2)}×`;
+      }
+      if (typeof s.colorModeId === "string") {
+        viewer.colorModeId = s.colorModeId;
+        colorModeSelect.value = s.colorModeId;
+      }
+    }
+  } catch {
+    /* ignore corrupt settings */
+  }
+  syncMag();
+}
+
 // ---------- boot ----------
 
 uploadField();
