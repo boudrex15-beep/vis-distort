@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>Vis-Distort — distortion-correcting viewer</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101014'/%3E%3Cpath d='M4 10 Q12 6 16 10 T28 10 M4 16 Q12 20 16 16 T28 16 M4 22 Q12 18 16 22 T28 22' stroke='%234da3ff' stroke-width='2.5' fill='none'/%3E%3Ccircle cx='16' cy='16' r='2.5' fill='%23ff4d4d'/%3E%3C/svg%3E" />
+  <script type="module" src="/src/main.ts"></script>
+</head>
+<body>
+  <header id="topbar">
+    <h1>Vis&#8209;Distort</h1>
+    <nav id="mode-tabs" role="tablist" aria-label="Mode">
+      <button id="tab-calibrate" role="tab" aria-selected="true" class="tab active">Calibrate</button>
+      <button id="tab-view" role="tab" aria-selected="false" class="tab">View</button>
+    </nav>
+    <div id="profile-bar">
+      <label for="profile-select">Profile</label>
+      <select id="profile-select" aria-label="Calibration profile"></select>
+    </div>
+    <button id="help-btn" aria-label="Help" title="Help">?</button>
+  </header>
+
+  <div id="app">
+    <aside id="sidebar">
+      <!-- ============ Calibrate panel ============ -->
+      <section id="panel-calibrate" class="panel">
+        <details open class="instructions">
+          <summary>How to calibrate</summary>
+          <ol>
+            <li>If calibrating one eye, cover the other eye.</li>
+            <li>Sit at your normal reading distance and keep it.</li>
+            <li>Stare at the <strong>center dot</strong> the whole time.</li>
+            <li>Drag the grid points until the lines look <strong>straight to you</strong>.</li>
+            <li>Click <strong>Save profile</strong> when the grid looks straight.</li>
+          </ol>
+          <p>Tip: click a point, then use <kbd>arrow keys</kbd> to nudge it (<kbd>Shift</kbd>+arrows for fine steps).</p>
+        </details>
+
+        <div class="control-group">
+          <label for="grid-density">Grid detail</label>
+          <select id="grid-density">
+            <option value="5">Coarse (5×5)</option>
+            <option value="9" selected>Medium (9×9)</option>
+            <option value="13">Fine (13×13)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label><input type="checkbox" id="show-handles" checked /> Show drag points</label>
+          <label><input type="checkbox" id="grid-invert" /> Black lines on white</label>
+        </div>
+
+        <div class="control-group button-row">
+          <button id="undo-btn" title="Undo last change (Cmd/Ctrl+Z)">Undo</button>
+          <button id="reset-point-btn">Reset point</button>
+          <button id="reset-all-btn" class="danger">Reset all</button>
+        </div>
+
+        <div class="control-group">
+          <button id="save-profile-btn" class="primary big">Save profile</button>
+        </div>
+
+        <div class="control-group button-row">
+          <button id="new-profile-btn">New</button>
+          <button id="rename-profile-btn">Rename</button>
+          <button id="delete-profile-btn" class="danger">Delete</button>
+        </div>
+        <div class="control-group button-row">
+          <button id="export-profile-btn">Export…</button>
+          <button id="import-profile-btn">Import…</button>
+          <input type="file" id="import-file-input" accept=".json,application/json" hidden />
+        </div>
+      </section>
+
+      <!-- ============ View panel ============ -->
+      <section id="panel-view" class="panel" hidden>
+        <div class="control-group">
+          <button id="open-file-btn" class="primary big">Open file…</button>
+          <input type="file" id="open-file-input"
+                 accept="image/*,video/*,application/pdf" hidden />
+          <p class="hint">…or drag &amp; drop an image, PDF, or video anywhere.</p>
+        </div>
+
+        <div class="control-group">
+          <label class="big-label">
+            <input type="checkbox" id="correction-toggle" checked />
+            Correction on <kbd>space</kbd>
+          </label>
+        </div>
+
+        <div class="control-group">
+          <label for="strength-slider">Strength <span id="strength-value">100%</span></label>
+          <input type="range" id="strength-slider" min="0" max="150" value="100" step="5" />
+        </div>
+
+        <div class="control-group">
+          <label for="field-size-slider">Correction area <span id="field-size-value">100%</span></label>
+          <input type="range" id="field-size-slider" min="50" max="200" value="100" step="5" />
+          <p class="hint">Match how big the grid looked during calibration.</p>
+        </div>
+
+        <div class="control-group">
+          <label><input type="checkbox" id="fixation-toggle" checked /> Center dot</label>
+        </div>
+
+        <div class="control-group button-row">
+          <button id="zoom-out-btn" title="Zoom out">−</button>
+          <button id="zoom-reset-btn">Fit</button>
+          <button id="zoom-in-btn" title="Zoom in">+</button>
+        </div>
+      </section>
+    </aside>
+
+    <main id="stage">
+      <canvas id="glcanvas"></canvas>
+      <div id="handles-layer"></div>
+      <div id="fixation-dot" aria-hidden="true"></div>
+      <div id="drop-hint" hidden>
+        <p><strong>Drop an image, PDF, or video here</strong></p>
+        <p>or use “Open file…” on the left</p>
+      </div>
+
+      <div id="pdf-bar" class="media-bar" hidden>
+        <button id="pdf-prev">◀ Prev</button>
+        <span id="pdf-pageinfo">Page <input id="pdf-page-input" type="number" min="1" value="1" /> of <span id="pdf-pagecount">1</span></span>
+        <button id="pdf-next">Next ▶</button>
+      </div>
+
+      <div id="video-bar" class="media-bar" hidden>
+        <button id="video-play" aria-label="Play or pause">▶</button>
+        <input id="video-seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek" />
+        <span id="video-time">0:00 / 0:00</span>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="help-dialog">
+    <h2>About Vis&#8209;Distort</h2>
+    <p>
+      This tool is for people with <strong>metamorphopsia</strong> — distorted (wavy) vision,
+      commonly from macular degeneration. It pre-warps what is on screen with the
+      <em>opposite</em> of your distortion, so that it can look straighter to you.
+    </p>
+    <h3>Two steps</h3>
+    <ol>
+      <li><strong>Calibrate:</strong> stare at the center dot and drag the grid until the lines look straight <em>to you</em>. Save it as a profile (one per eye if they differ).</li>
+      <li><strong>View:</strong> open an image, PDF, or video. It is shown through your correction. Press <kbd>space</kbd> to compare with/without.</li>
+    </ol>
+    <h3>Important to know</h3>
+    <ul>
+      <li>The correction is anchored to your <strong>fixation point</strong>. It works best when you look at the center dot and keep the same viewing distance you calibrated at.</li>
+      <li>Everything runs on your computer. Your files and calibration never leave this device.</li>
+      <li>This is an assistive aid, not a medical treatment. If your distortion changes noticeably or suddenly, contact your eye doctor — sudden change can signal wet AMD, which is urgent.</li>
+    </ul>
+    <form method="dialog"><button class="primary big">Close</button></form>
+  </dialog>
+
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

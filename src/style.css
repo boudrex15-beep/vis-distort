@@ -1,0 +1,288 @@
+/* High-contrast, large-target UI: the primary user has low vision. */
+
+:root {
+  --bg: #101014;
+  --panel: #1b1b22;
+  --panel-edge: #34343f;
+  --text: #f2f2f5;
+  --text-dim: #b8b8c2;
+  --accent: #4da3ff;
+  --accent-strong: #1e7fe8;
+  --danger: #ff6b6b;
+  --focus: #ffd54d;
+  font-size: 18px;
+}
+
+* { box-sizing: border-box; }
+
+/* Author display rules (e.g. .media-bar { display:flex }) would otherwise
+   override the UA stylesheet's [hidden] { display:none }. */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  line-height: 1.45;
+}
+
+body { display: flex; flex-direction: column; overflow: hidden; }
+
+kbd {
+  background: #2c2c36;
+  border: 1px solid #4a4a58;
+  border-radius: 5px;
+  padding: 0 0.4em;
+  font-size: 0.85em;
+}
+
+/* ---------- Top bar ---------- */
+
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.5rem 1rem;
+  background: var(--panel);
+  border-bottom: 2px solid var(--panel-edge);
+  flex: 0 0 auto;
+}
+
+#topbar h1 { font-size: 1.25rem; margin: 0; letter-spacing: 0.02em; }
+
+#mode-tabs { display: flex; gap: 0.5rem; }
+
+.tab {
+  font-size: 1.05rem;
+  padding: 0.55rem 1.4rem;
+  border-radius: 10px;
+  border: 2px solid var(--panel-edge);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.tab.active {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #fff;
+  font-weight: 600;
+}
+
+#profile-bar {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+#profile-bar label { color: var(--text-dim); }
+
+select, input[type="number"] {
+  font-size: 1rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 2px solid var(--panel-edge);
+  background: #22222b;
+  color: var(--text);
+}
+#profile-select { min-width: 12rem; }
+
+#help-btn {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  font-size: 1.3rem;
+  font-weight: 700;
+  border: 2px solid var(--panel-edge);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* ---------- Layout ---------- */
+
+#app { display: flex; flex: 1 1 auto; min-height: 0; }
+
+#sidebar {
+  width: 310px;
+  flex: 0 0 auto;
+  overflow-y: auto;
+  background: var(--panel);
+  border-right: 2px solid var(--panel-edge);
+  padding: 1rem;
+}
+
+#stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+#glcanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* ---------- Sidebar controls ---------- */
+
+.panel { display: flex; flex-direction: column; gap: 1.1rem; }
+
+.instructions {
+  background: #22222b;
+  border: 1px solid var(--panel-edge);
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+}
+.instructions summary { cursor: pointer; font-weight: 600; }
+.instructions ol { padding-left: 1.2rem; margin: 0.6rem 0; }
+.instructions li { margin-bottom: 0.4rem; }
+.instructions p { color: var(--text-dim); margin: 0.4rem 0 0; }
+
+.control-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.control-group label { display: flex; align-items: center; gap: 0.55rem; }
+.big-label { font-size: 1.1rem; font-weight: 600; }
+
+.button-row { flex-direction: row; flex-wrap: wrap; }
+.button-row button { flex: 1 1 auto; }
+
+button {
+  font-size: 1rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 10px;
+  border: 2px solid var(--panel-edge);
+  background: #26262f;
+  color: var(--text);
+  cursor: pointer;
+  min-height: 44px; /* large touch/click target */
+}
+button:hover { background: #30303b; }
+button.primary { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; font-weight: 600; }
+button.primary:hover { background: var(--accent); }
+button.big { font-size: 1.15rem; min-height: 52px; }
+button.danger { border-color: #5b2c2c; color: var(--danger); }
+button.danger:hover { background: #3a2222; }
+button:disabled { opacity: 0.45; cursor: default; }
+
+:is(button, select, input, summary, .tab):focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+input[type="checkbox"] { width: 1.35rem; height: 1.35rem; accent-color: var(--accent-strong); }
+input[type="range"] { width: 100%; accent-color: var(--accent-strong); height: 2rem; }
+
+.hint { color: var(--text-dim); font-size: 0.9rem; margin: 0; }
+
+/* ---------- Calibration handles ---------- */
+
+#handles-layer { position: absolute; inset: 0; }
+#handles-layer.hidden-handles .handle { opacity: 0; pointer-events: none; }
+
+.handle {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  background: rgba(77, 163, 255, 0.25);
+  cursor: grab;
+  touch-action: none;
+}
+.handle:hover { background: rgba(77, 163, 255, 0.5); }
+.handle.selected {
+  border-color: var(--focus);
+  background: rgba(255, 213, 77, 0.35);
+  box-shadow: 0 0 0 3px rgba(255, 213, 77, 0.4);
+}
+.handle.dragging { cursor: grabbing; }
+.handle.moved { border-style: solid; border-color: #7ee08a; }
+.handle:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* ---------- Fixation dot ---------- */
+
+#fixation-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: #ff4d4d;
+  border: 2px solid #fff;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* ---------- Viewer chrome ---------- */
+
+#drop-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  color: var(--text-dim);
+  font-size: 1.3rem;
+  text-align: center;
+  pointer-events: none;
+}
+#drop-hint p { margin: 0.2rem; }
+
+#stage.drag-over::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 4px dashed var(--accent);
+  border-radius: 16px;
+  pointer-events: none;
+}
+
+.media-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: rgba(27, 27, 34, 0.92);
+  border: 2px solid var(--panel-edge);
+  border-radius: 12px;
+  padding: 0.5rem 0.9rem;
+  z-index: 6;
+}
+#pdf-page-input { width: 4.2rem; text-align: center; }
+#video-seek { width: min(420px, 40vw); }
+#video-time { font-variant-numeric: tabular-nums; color: var(--text-dim); white-space: nowrap; }
+
+/* ---------- Help dialog & toast ---------- */
+
+#help-dialog {
+  max-width: 620px;
+  background: var(--panel);
+  color: var(--text);
+  border: 2px solid var(--panel-edge);
+  border-radius: 14px;
+  padding: 1.4rem 1.6rem;
+  font-size: 1.05rem;
+}
+#help-dialog::backdrop { background: rgba(0, 0, 0, 0.65); }
+#help-dialog h2 { margin-top: 0; }
+
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  background: #2c2c36;
+  border: 2px solid var(--accent);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 0.7rem 1.2rem;
+  font-size: 1.05rem;
+  z-index: 50;
+}
