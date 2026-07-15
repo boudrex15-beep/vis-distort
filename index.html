@@ -39,6 +39,19 @@
         </details>
 
         <div class="control-group">
+          <label for="calib-background">Background</label>
+          <select id="calib-background">
+            <option value="grid" selected>Grid (Amsler)</option>
+            <option value="text">Text (reading practice)</option>
+          </select>
+        </div>
+
+        <div class="control-group" id="text-size-group" hidden>
+          <label for="text-size-slider">Text size <span id="text-size-value">28 px</span></label>
+          <input type="range" id="text-size-slider" min="14" max="72" value="28" step="2" />
+        </div>
+
+        <div class="control-group">
           <label for="grid-density">Grid detail</label>
           <select id="grid-density">
             <option value="5">Coarse (5×5)</option>
@@ -49,7 +62,7 @@
 
         <div class="control-group">
           <label><input type="checkbox" id="show-handles" checked /> Show drag points</label>
-          <label><input type="checkbox" id="grid-invert" /> Black lines on white</label>
+          <label><input type="checkbox" id="grid-invert" /> Invert colors (dark on light)</label>
         </div>
 
         <div class="control-group button-row">

@@ -11,9 +11,23 @@ export interface CalibrateLayout {
  * the user drags control points until the lines look straight to them. The
  * warp that achieves that IS the corrective warp — it is saved directly.
  */
+const SAMPLE_TEXT =
+  "The morning light came in slowly over the garden, and the birds began " +
+  "their usual conversation in the old oak tree. She poured a cup of coffee " +
+  "and sat by the window, watching the street wake up. A neighbor walked past " +
+  "with a small brown dog, pausing at every lamp post along the way. " +
+  "The newspaper lay folded on the table, its headlines waiting patiently. " +
+  "Reading should feel steady and calm. When each line of this text looks " +
+  "straight and evenly spaced to you, your calibration is working well. ";
+
+export type CalibrateBackground = "grid" | "text";
+
 export class CalibrateMode {
   lattice: ControlLattice;
-  inverted = false; // false = white lines on black (clinical standard)
+  inverted = false; // false = light foreground on dark (clinical standard)
+  backgroundMode: CalibrateBackground = "grid";
+  /** Desired on-screen text size in CSS px (text background only). */
+  textSize = 28;
 
   private stage: HTMLElement;
   private handlesLayer: HTMLElement;
@@ -53,18 +67,36 @@ export class CalibrateMode {
     };
   }
 
-  /** The grid texture; redrawn lazily when density/theme changes. */
+  /** The background texture; redrawn lazily when its settings change. */
   getGridTexture(): { canvas: HTMLCanvasElement; changed: boolean } {
     const changed = this.gridDirty;
     if (this.gridDirty) {
-      this.drawGrid();
+      if (this.backgroundMode === "text") this.drawText();
+      else this.drawGrid();
       this.gridDirty = false;
     }
     return { canvas: this.gridCanvas, changed };
   }
 
+  setBackgroundMode(mode: CalibrateBackground): void {
+    this.backgroundMode = mode;
+    this.gridDirty = true;
+  }
+
+  setTextSize(px: number): void {
+    this.textSize = px;
+    if (this.backgroundMode === "text") this.gridDirty = true;
+  }
+
+  /** Text is drawn at a screen-relative size, so a resize needs a redraw. */
+  onResize(): void {
+    if (this.backgroundMode === "text") this.gridDirty = true;
+  }
+
   background(): [number, number, number, number] {
-    return this.inverted ? [1, 1, 1, 1] : [0, 0, 0, 1];
+    if (this.inverted) return [1, 1, 1, 1];
+    // Match the text background (#0a0a0d) so the field edge is seamless.
+    return this.backgroundMode === "text" ? [0.039, 0.039, 0.051, 1] : [0, 0, 0, 1];
   }
 
   setInverted(inverted: boolean): void {
@@ -260,6 +292,44 @@ export class CalibrateMode {
     this.lastUndoPushAt = now;
     this.undoStack.push(Float32Array.from(this.lattice.disp));
     if (this.undoStack.length > 100) this.undoStack.shift();
+  }
+
+  private drawText(): void {
+    const ctx = this.gridCanvas.getContext("2d")!;
+    const size = this.gridCanvas.width;
+    const bg = this.inverted ? "#ffffff" : "#0a0a0d";
+    const fg = this.inverted ? "#1a1a1a" : "#e8e8ec";
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = fg;
+
+    // The texture spans the field square, so scale the font so it appears
+    // at ~textSize CSS px on screen at the current field size.
+    const { fieldSide } = this.layout();
+    const fontPx = Math.max(8, this.textSize * (size / fieldSide));
+    ctx.font = `${fontPx}px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif`;
+    ctx.textBaseline = "top";
+
+    const margin = fontPx;
+    const maxWidth = size - margin * 2;
+    const lineHeight = fontPx * 1.55;
+    const words = SAMPLE_TEXT.split(" ").filter((w) => w.length > 0);
+
+    let y = margin;
+    let line = "";
+    let wordIndex = 0;
+    while (y + lineHeight <= size - margin) {
+      const word = words[wordIndex % words.length]!;
+      const candidate = line ? `${line} ${word}` : word;
+      if (ctx.measureText(candidate).width > maxWidth && line) {
+        ctx.fillText(line, margin, y);
+        y += lineHeight;
+        line = "";
+      } else {
+        line = candidate;
+        wordIndex++;
+      }
+    }
   }
 
   private drawGrid(): void {

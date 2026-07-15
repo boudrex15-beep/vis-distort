@@ -92,7 +92,10 @@ function renderCalibrate(): void {
 
 function frame(): void {
   if (renderer.resize()) {
-    if (mode === "calibrate") calibrate.positionHandles();
+    if (mode === "calibrate") {
+      calibrate.positionHandles();
+      calibrate.onResize();
+    }
     dirty = true;
   }
   if (dirty || (mode === "view" && viewer.continuous)) {
@@ -257,6 +260,22 @@ importInput.addEventListener("change", async () => {
 });
 
 // ---------- calibrate panel ----------
+
+const textSizeGroup = $("text-size-group");
+$<HTMLSelectElement>("calib-background").addEventListener("change", (e) => {
+  const mode = (e.target as HTMLSelectElement).value as "grid" | "text";
+  calibrate.setBackgroundMode(mode);
+  textSizeGroup.hidden = mode !== "text";
+  requestRender();
+});
+
+const textSizeSlider = $<HTMLInputElement>("text-size-slider");
+const textSizeValue = $("text-size-value");
+textSizeSlider.addEventListener("input", () => {
+  calibrate.setTextSize(textSizeSlider.valueAsNumber);
+  textSizeValue.textContent = `${textSizeSlider.value} px`;
+  requestRender();
+});
 
 $<HTMLSelectElement>("grid-density").addEventListener("change", (e) => {
   calibrate.setDensity(Number((e.target as HTMLSelectElement).value));
