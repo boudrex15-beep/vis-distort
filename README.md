@@ -41,10 +41,11 @@ your computer.
 
 ### Hosted (recommended)
 
-The repository ships with a GitHub Actions workflow that publishes the app to GitHub
-Pages on every push to `main`. To enable it once: repository **Settings → Pages →
-Source: GitHub Actions**. The app is then available at
-`https://<owner>.github.io/vis-distort/` — just bookmark it on the MacBook.
+The repository ships with a GitHub Actions workflow that builds the app on every push
+to `main` and publishes it to the `gh-pages` branch. To enable it once: repository
+**Settings → Pages → Source: Deploy from a branch → Branch: `gh-pages` / `(root)`**.
+The app is then available at `https://<owner>.github.io/vis-distort/` — just bookmark
+it on the MacBook.
 
 ### Locally
 
