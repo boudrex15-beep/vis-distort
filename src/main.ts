@@ -115,7 +115,8 @@ const tabView = $<HTMLButtonElement>("tab-view");
 const panelCalibrate = $("panel-calibrate");
 const panelView = $("panel-view");
 const fixationDot = $("fixation-dot");
-const fixationToggle = $<HTMLInputElement>("fixation-toggle");
+// Present only on the classic page; the aids View has no fixation dot.
+const fixationToggle = document.getElementById("fixation-toggle") as HTMLInputElement | null;
 const dropHint = $("drop-hint");
 
 function setMode(next: Mode): void {
@@ -137,7 +138,15 @@ function setMode(next: Mode): void {
     viewer.activate();
     contentOwnedByCalibrate = false;
     dropHint.hidden = viewer.hasContent;
-    fixationDot.style.display = fixationToggle.checked ? "" : "none";
+    if (fixationToggle) {
+      // Classic page: warp + fixation dot follow their controls.
+      viewer.correctionOn = correctionToggle?.checked ?? true;
+      fixationDot.style.display = fixationToggle.checked ? "" : "none";
+    } else {
+      // Aids page: the View tab never applies the distortion warp.
+      viewer.correctionOn = false;
+      fixationDot.style.display = "none";
+    }
   }
   requestRender();
 }
@@ -305,29 +314,31 @@ openInput.addEventListener("change", () => {
   if (file) void viewer.openFile(file);
 });
 
-const correctionToggle = $<HTMLInputElement>("correction-toggle");
-correctionToggle.addEventListener("change", () => {
+// Distortion-correction controls exist only on the classic page (index.html).
+// On the aids page they are absent and the warp is simply not applied in View.
+const correctionToggle = document.getElementById("correction-toggle") as HTMLInputElement | null;
+correctionToggle?.addEventListener("change", () => {
   viewer.correctionOn = correctionToggle.checked;
   requestRender();
 });
 
-const strengthSlider = $<HTMLInputElement>("strength-slider");
-const strengthValue = $("strength-value");
-strengthSlider.addEventListener("input", () => {
+const strengthSlider = document.getElementById("strength-slider") as HTMLInputElement | null;
+const strengthValue = document.getElementById("strength-value");
+strengthSlider?.addEventListener("input", () => {
   viewer.strength = strengthSlider.valueAsNumber / 100;
-  strengthValue.textContent = `${strengthSlider.value}%`;
+  if (strengthValue) strengthValue.textContent = `${strengthSlider.value}%`;
   requestRender();
 });
 
-const fieldSizeSlider = $<HTMLInputElement>("field-size-slider");
-const fieldSizeValue = $("field-size-value");
-fieldSizeSlider.addEventListener("input", () => {
+const fieldSizeSlider = document.getElementById("field-size-slider") as HTMLInputElement | null;
+const fieldSizeValue = document.getElementById("field-size-value");
+fieldSizeSlider?.addEventListener("input", () => {
   viewer.fieldSizeFactor = fieldSizeSlider.valueAsNumber / 100;
-  fieldSizeValue.textContent = `${fieldSizeSlider.value}%`;
+  if (fieldSizeValue) fieldSizeValue.textContent = `${fieldSizeSlider.value}%`;
   requestRender();
 });
 
-fixationToggle.addEventListener("change", () => {
+fixationToggle?.addEventListener("change", () => {
   if (mode === "view") fixationDot.style.display = fixationToggle.checked ? "" : "none";
 });
 
@@ -364,7 +375,7 @@ window.addEventListener("keydown", (e) => {
     if (calibrate.handleKeydown(e)) requestRender();
     return;
   }
-  if (e.key === " ") {
+  if (e.key === " " && correctionToggle) {
     e.preventDefault();
     correctionToggle.checked = !correctionToggle.checked;
     viewer.correctionOn = correctionToggle.checked;
