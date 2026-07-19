@@ -51,32 +51,7 @@ kbd {
 }
 
 #topbar h1 { font-size: 1.25rem; margin: 0; letter-spacing: 0.02em; }
-
-#mode-tabs { display: flex; gap: 0.5rem; }
-
-.tab {
-  font-size: 1.05rem;
-  padding: 0.55rem 1.4rem;
-  border-radius: 10px;
-  border: 2px solid var(--panel-edge);
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-}
-.tab.active {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
-  color: #fff;
-  font-weight: 600;
-}
-
-#profile-bar {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-#profile-bar label { color: var(--text-dim); }
+#tagline { margin: 0; color: var(--text-dim); font-size: 0.95rem; }
 
 select, input[type="number"] {
   font-size: 1rem;
@@ -86,9 +61,9 @@ select, input[type="number"] {
   background: #22222b;
   color: var(--text);
 }
-#profile-select { min-width: 12rem; }
 
 #help-btn {
+  margin-left: auto;
   width: 2.6rem;
   height: 2.6rem;
   border-radius: 50%;
@@ -127,17 +102,6 @@ select, input[type="number"] {
 
 .panel { display: flex; flex-direction: column; gap: 1.1rem; }
 
-.instructions {
-  background: #22222b;
-  border: 1px solid var(--panel-edge);
-  border-radius: 10px;
-  padding: 0.6rem 0.8rem;
-}
-.instructions summary { cursor: pointer; font-weight: 600; }
-.instructions ol { padding-left: 1.2rem; margin: 0.6rem 0; }
-.instructions li { margin-bottom: 0.4rem; }
-.instructions p { color: var(--text-dim); margin: 0.4rem 0 0; }
-
 .control-group { display: flex; flex-direction: column; gap: 0.5rem; }
 .control-group label { display: flex; align-items: center; gap: 0.55rem; }
 .big-label { font-size: 1.1rem; font-weight: 600; }
@@ -163,7 +127,7 @@ button.danger { border-color: #5b2c2c; color: var(--danger); }
 button.danger:hover { background: #3a2222; }
 button:disabled { opacity: 0.45; cursor: default; }
 
-:is(button, select, input, summary, .tab):focus-visible {
+:is(button, select, input, textarea, summary):focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
@@ -172,48 +136,6 @@ input[type="checkbox"] { width: 1.35rem; height: 1.35rem; accent-color: var(--ac
 input[type="range"] { width: 100%; accent-color: var(--accent-strong); height: 2rem; }
 
 .hint { color: var(--text-dim); font-size: 0.9rem; margin: 0; }
-
-/* ---------- Calibration handles ---------- */
-
-#handles-layer { position: absolute; inset: 0; }
-#handles-layer.hidden-handles .handle { opacity: 0; pointer-events: none; }
-
-.handle {
-  position: absolute;
-  width: 30px;
-  height: 30px;
-  margin: -15px 0 0 -15px;
-  border-radius: 50%;
-  border: 3px solid var(--accent);
-  background: rgba(77, 163, 255, 0.25);
-  cursor: grab;
-  touch-action: none;
-}
-.handle:hover { background: rgba(77, 163, 255, 0.5); }
-.handle.selected {
-  border-color: var(--focus);
-  background: rgba(255, 213, 77, 0.35);
-  box-shadow: 0 0 0 3px rgba(255, 213, 77, 0.4);
-}
-.handle.dragging { cursor: grabbing; }
-.handle.moved { border-style: solid; border-color: #7ee08a; }
-.handle:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-
-/* ---------- Fixation dot ---------- */
-
-#fixation-dot {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 14px;
-  height: 14px;
-  margin: -7px 0 0 -7px;
-  border-radius: 50%;
-  background: #ff4d4d;
-  border: 2px solid #fff;
-  pointer-events: none;
-  z-index: 5;
-}
 
 /* ---------- Viewer chrome ---------- */
 
@@ -287,19 +209,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent-strong); height: 2
   z-index: 50;
 }
 
-/* ---------- Aids page additions ---------- */
-
-.badge {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background: var(--accent-strong);
-  color: #fff;
-  padding: 0.1rem 0.45rem;
-  border-radius: 6px;
-  vertical-align: middle;
-}
+/* ---------- Control groups ---------- */
 
 .control-fieldset {
   border: 1px solid var(--panel-edge);

@@ -15,15 +15,15 @@ function formatTime(seconds: number): string {
 
 const MAX_ZOOM = 8;
 
-export class ViewerMode {
-  correctionOn = true;
-  strength = 1;
-  fieldSizeFactor = 1;
+export type ReaderColors = "white-on-black" | "black-on-white";
 
+export class ViewerMode {
   // Low-vision enhancements (see colorModes.ts for the palettes).
   brightness = 0;
   contrast = 1;
   colorModeId = "normal";
+  /** Palette for the scrolling-text reader, independent of colour mode. */
+  readerColors: ReaderColors = "white-on-black";
 
   private stage: HTMLElement;
   private renderer: WarpRenderer;
@@ -73,7 +73,7 @@ export class ViewerMode {
 
   activate(): void {
     this.active = true;
-    this.uploadedVersion = -1; // renderer's content texture belongs to calibrate now
+    this.uploadedVersion = -1; // force content re-upload
     this.updateChrome();
   }
 
@@ -172,9 +172,14 @@ export class ViewerMode {
     };
   }
 
-  /** Apply the current colour-mode palette to the text ticker, if active. */
   setColorMode(id: string): void {
     this.colorModeId = id;
+    this.requestRender();
+  }
+
+  /** Change the reader palette; applies immediately if the ticker is showing. */
+  setReaderColors(id: ReaderColors): void {
+    this.readerColors = id;
     if (this.source instanceof TextSource) {
       const p = paletteCss(colorModeById(id));
       this.source.setPalette(p.fg, p.bg);
@@ -192,7 +197,7 @@ export class ViewerMode {
       this.notify("Type or paste some text first.");
       return;
     }
-    const p = paletteCss(colorModeById(this.colorModeId));
+    const p = paletteCss(colorModeById(this.readerColors));
     if (this.source instanceof TextSource) {
       this.source.setText(text);
       this.source.setPalette(p.fg, p.bg);
@@ -251,25 +256,11 @@ export class ViewerMode {
     return false;
   }
 
-  /** Field geometry mirrors calibration: a square over the stage center. */
-  fieldGeometry(): { fieldCenter: { x: number; y: number }; fieldSide: number } {
-    const w = this.stage.clientWidth;
-    const h = this.stage.clientHeight;
-    return {
-      fieldCenter: { x: w / 2, y: h / 2 },
-      fieldSide: Math.max(64, Math.min(w, h) * 0.92 * this.fieldSizeFactor),
-    };
-  }
-
   render(): void {
     const background: [number, number, number, number] = [0.06, 0.06, 0.08, 1];
-    const geometry = this.fieldGeometry();
     if (!this.source) {
       this.renderer.clearContent();
       this.renderer.render({
-        strength: 0,
-        fieldSide: geometry.fieldSide,
-        fieldCenter: geometry.fieldCenter,
         contentRect: { x: 0, y: 0, w: 1, h: 1 },
         background,
       });
@@ -282,9 +273,6 @@ export class ViewerMode {
     }
     if (this.source instanceof VideoSource) this.updateVideoBar();
     this.renderer.render({
-      strength: this.correctionOn ? this.strength : 0,
-      fieldSide: geometry.fieldSide,
-      fieldCenter: geometry.fieldCenter,
       contentRect: this.contentRect(),
       background,
       enhance: this.enhanceParams(),
