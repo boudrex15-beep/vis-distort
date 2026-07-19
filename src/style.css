@@ -4,8 +4,9 @@
   --bg: #101014;
   --panel: #1b1b22;
   --panel-edge: #34343f;
-  --text: #f2f2f5;
-  --text-dim: #b8b8c2;
+  /* All interface text is bright white for maximum contrast (low-vision user). */
+  --text: #ffffff;
+  --text-dim: #ffffff;
   --accent: #4da3ff;
   --accent-strong: #1e7fe8;
   --danger: #ff6b6b;
@@ -135,6 +136,9 @@ button:disabled { opacity: 0.45; cursor: default; }
 input[type="checkbox"] { width: 1.35rem; height: 1.35rem; accent-color: var(--accent-strong); }
 input[type="range"] { width: 100%; accent-color: var(--accent-strong); height: 2rem; }
 
+/* Keep placeholder text legible (browsers dim it by default). */
+::placeholder { color: #e6e6ea; opacity: 1; }
+
 .hint { color: var(--text-dim); font-size: 0.9rem; margin: 0; }
 
 /* ---------- Viewer chrome ---------- */
@@ -248,4 +252,4 @@ textarea#read-text {
 }
 .bar-label input[type="range"] { width: 130px; }
 
-#help-dialog a { color: var(--accent); }
+#help-dialog a { color: #ffffff; text-decoration: underline; }
